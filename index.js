@@ -11,49 +11,143 @@ export function initializeOrdre(options) {
         return;
     }
 
-    console.log("initializeOrdre entered");
+    //console.log("initializeOrdre entered");
 
     initialized = true;
-    let addedNodes;
-    let removedNodes;
+    //let attributeName;
+    //let node;
+    let nodesToAddDict;
+    let nodesToAddKeys;
+    let nodesToRemoveKeys;
     let nodeId;
+    let observeCallbackNotTriggeredYet = true;
+    let domIdNodesDict = {};
+    let changed;
+    let callbackIsExecuting = false;
 
-    const callback = (mutationList, observer) => {
+    const nodeToDict = node => {
+        //const rect = node.getBoundingClientRect();
+        //console.log(rect);
+        return {
+            tagName: node.tagName
+        };
+    };
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    const callback = async (mutationList, observer) => {
         try {
-            console.log("MutationObserver callback entered");
-            addedNodes = {};
-            removedNodes = {};
+            while (callbackIsExecuting) {
+                await sleep(1);
+            }
+            callbackIsExecuting = true;
+            changed = false;
+            if (observeCallbackNotTriggeredYet) {
+                const allElements = document.querySelectorAll('*[id]:not([id=""])');
+                if (allElements.length > 0) {
+                    console.log("allElements.length: " + allElements.length);
+                    allElements.forEach(node => {
+                        nodeId = node.id;
+                        console.log("nodeId: " + nodeId);
+                        domIdNodesDict[nodeId] = nodeToDict(node);
+                        //domIdNodes.push(nodeToDict(node));
+                        //domIdNodesKeys.push(nodeId);
+                    });
+                    changed = true;
+                    //console.log(JSON.stringify(domIdNodes));
+                }
+                observeCallbackNotTriggeredYet = false;
+            }
+
+            nodesToAddDict = {};
+            //nodesToAdd = [];
+            //nodesToAddKeys = [];
+            nodesToRemoveKeys = [];
             for (const mutation of mutationList) {
-                if (mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach(node => {
-                        nodeId = node.id;
-                        if (nodeId && nodeId.length > 0 && !(node.id in addedNodes)) {
-                            //console.log("added node.id: " + node.id);
-                            addedNodes[node.id] = node;
+                if (mutation.type === 'childList') {
+                    if (mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(node => {
+                            nodeId = node.id;
+                            if (nodeId && nodeId.length > 0) {
+                                //console.log("added node.id: " + node.id);
+                                //nodesToAdd.push(nodeToDict(node));
+                                //nodesToAddKeys.push(nodeId);
+                                nodesToAddDict[nodeId] = nodeToDict(node);
+                            }
+                        });
+                    }
+                    if (mutation.removedNodes.length > 0) {
+                        mutation.removedNodes.forEach(node => {
+                            nodeId = node.id;
+                            if (nodeId && nodeId.length > 0 && !(nodesToRemoveKeys.includes(nodeId))) {
+                                //console.log("removed node.id: " + node.id);
+                                nodesToRemoveKeys.push(nodeId);
+                            }
+                        });
+                    }
+                }/* else if (mutation.type === 'attributes') {
+                    attributeName = mutation.attributeName;
+                    node = mutation.target;
+                    nodeId = node.id;
+                    if (attributeName && nodeId && nodeId.length > 0) {
+                        if (nodeId in domIdNodesDict) {
+                            domIdNodesDict[nodeId][attributeName] = node[attributeName];
+                            changed = true;
                         }
-                    });
-                }
-                if (mutation.removedNodes.length > 0) {
-                    mutation.removedNodes.forEach(node => {
-                        nodeId = node.id;
-                        if (nodeId && nodeId.length > 0 && !(node.id in removedNodes)) {
-                            //console.log("removed node.id: " + node.id);
-                            removedNodes[node.id] = node;
-                        }
-                    });
-                }
+                    }
+                }*/
             }
-            const addedKeys = Object.keys(addedNodes);
-            if (addedKeys.length > 0) {
-                console.log("addedKeys: " + addedKeys.join(", "));
+
+            nodesToAddKeys = Object.keys(nodesToAddDict);
+            if (nodesToAddKeys.length > 0) {
+                //console.log("nodesToAddKeys: " + nodesToAddKeys.join(", "));
+                nodesToAddKeys.forEach(key => {
+                    if (!(key in domIdNodesDict)) {
+                        //console.log("added key: " + key);
+                        //domIdNodesDict[key] = nodesToAdd[index];
+                        domIdNodesDict[key] = nodesToAddDict[key];
+                        changed = true;
+                    }
+                    /*if (!(domIdNodesKeys.includes(key))) {
+                        console.log("added key: " + key);
+                        domIdNodes.push(nodesToAdd[index]);
+                        //console.log("domIdNodesKeys before");
+                        //console.log(domIdNodesKeys);
+                        domIdNodesKeys.push(key);
+                        //console.log("domIdNodesKeys after");
+                        //console.log(domIdNodesKeys);
+                        changed = true;
+                    }*/
+                });
             }
-            const removedKeys = Object.keys(removedNodes);
-            if (removedKeys.length > 0) {
-                console.log("removedKeys: " + removedKeys.join(", "));
+            if (nodesToRemoveKeys.length > 0) {
+                //console.log("removedKeys: " + removedKeys.join(", "));
+                nodesToRemoveKeys.forEach(key => {
+                    /*const pos = domIdNodesKeys.indexOf(key);
+                    if (pos != -1) {
+                        console.log("removed key: " + key);
+                        domIdNodes.splice(pos, 1);
+                        domIdNodesKeys.splice(pos, 1);
+                    }*/
+                    if (key in domIdNodesDict) {
+                        //console.log("removed key: " + key);
+                        delete domIdNodesDict[key];
+                        changed = true;
+                    }
+                });
+            }
+            if (changed) {
+                //console.log(".");
+                console.log("domIdNodesDict changed");
+                console.log(JSON.stringify(domIdNodesDict));
             }
         } catch (e) {
             console.log("ordre MutationObserver exception: " + e.toString());
+            //console.log("ordre MutationObserver exception");
         }
+        callbackIsExecuting = false;
     };
 
     const observer = new MutationObserver(callback);
@@ -63,7 +157,27 @@ export function initializeOrdre(options) {
 
     console.log("initializeOrdre starting to observe...");
 
-    observer.observe(document.body, config);
+    observer.observe(document, config);
+
+    let ordreObservationStartDetectionDiv;
+
+    const observationStartDetector = () => {
+        setTimeout(() => {
+            ordreObservationStartDetectionDiv = document.getElementById('ordreObservationStartDetectionDiv');
+            if (ordreObservationStartDetectionDiv) {
+                ordreObservationStartDetectionDiv.remove();
+            } else {
+                ordreObservationStartDetectionDiv = document.createElement('div');
+                ordreObservationStartDetectionDiv.id = 'ordreObservationStartDetectionDiv';
+                ordreObservationStartDetectionDiv.style.cssText = 'display: none;';
+                document.body.appendChild(ordreObservationStartDetectionDiv);
+            }
+            if (observeCallbackNotTriggeredYet) {
+                observationStartDetector();
+            }
+        }, 10);
+    };
+    observationStartDetector();
 
     //setTimeout(() => observer.disconnect(), 10000);
 }
