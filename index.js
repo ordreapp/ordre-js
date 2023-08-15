@@ -1,11 +1,12 @@
 let initialized = false;
 
-export function initializeOrdre(options) {
-    /*if (!("clientKey" in options) || !("ordreDeviceId" in options)) {
+export function startOrdre() {
+    if (!("clientKey" in options) || !("deviceId" in options)) {
+        console.log("startOrdre: Missing 'clientKey' or 'deviceId' parameters.");
         return;
     }
     const clientKey = options["clientKey"];
-    const deviceId = options["ordreDeviceId"];*/
+    const deviceId = options["deviceId"];
 
     if (initialized) {
         return;
@@ -42,6 +43,12 @@ export function initializeOrdre(options) {
             while (callbackIsExecuting) {
                 await sleep(1);
             }
+
+            nodesToAddDict = {};
+            //nodesToAdd = [];
+            //nodesToAddKeys = [];
+            nodesToRemoveKeys = [];
+
             callbackIsExecuting = true;
             changed = false;
             if (observeCallbackNotTriggeredYet) {
@@ -51,7 +58,8 @@ export function initializeOrdre(options) {
                     allElements.forEach(node => {
                         nodeId = node.id;
                         console.log("nodeId: " + nodeId);
-                        domIdNodesDict[nodeId] = nodeToDict(node);
+                        nodesToAddDict[nodeId] = nodeToDict(node);
+                        //domIdNodesDict[nodeId] = nodeToDict(node);
                         //domIdNodes.push(nodeToDict(node));
                         //domIdNodesKeys.push(nodeId);
                     });
@@ -61,16 +69,12 @@ export function initializeOrdre(options) {
                 observeCallbackNotTriggeredYet = false;
             }
 
-            nodesToAddDict = {};
-            //nodesToAdd = [];
-            //nodesToAddKeys = [];
-            nodesToRemoveKeys = [];
             for (const mutation of mutationList) {
                 if (mutation.type === 'childList') {
                     if (mutation.addedNodes.length > 0) {
                         mutation.addedNodes.forEach(node => {
                             nodeId = node.id;
-                            if (nodeId && nodeId.length > 0) {
+                            if (nodeId && nodeId.length > 0 && !(nodeId in nodesToAddDict)) {
                                 //console.log("added node.id: " + node.id);
                                 //nodesToAdd.push(nodeToDict(node));
                                 //nodesToAddKeys.push(nodeId);
@@ -103,6 +107,17 @@ export function initializeOrdre(options) {
             nodesToAddKeys = Object.keys(nodesToAddDict);
             if (nodesToAddKeys.length > 0) {
                 //console.log("nodesToAddKeys: " + nodesToAddKeys.join(", "));
+
+                const body = JSON.stringify(nodesToAddDict);
+
+                fetch("http://192.168.1.533:8000/device/add_nodes", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body
+                });
+
                 nodesToAddKeys.forEach(key => {
                     if (!(key in domIdNodesDict)) {
                         //console.log("added key: " + key);
@@ -124,6 +139,17 @@ export function initializeOrdre(options) {
             }
             if (nodesToRemoveKeys.length > 0) {
                 //console.log("removedKeys: " + removedKeys.join(", "));
+
+                const body = JSON.stringify(nodesToRemoveKeys);
+
+                fetch("http://192.168.1.533:8000/device/remove_nodes", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body
+                });
+
                 nodesToRemoveKeys.forEach(key => {
                     /*const pos = domIdNodesKeys.indexOf(key);
                     if (pos != -1) {
