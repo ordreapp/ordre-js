@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/ordreapp/ordre-js/issues"
   },
-  "homepage": "https://github.com/ordreapp/ordre-js#readme"
+  "homepage": "https://github.com/ordreapp/ordre-js#readme",
+  "dependencies": {
+    "minimist": "^1.2.8"
+  }
 }
