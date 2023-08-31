@@ -1,6 +1,6 @@
 {
-  "name": "ordre",
-  "version": "0.0.1",
+  "name": "ordre-test",
+  "version": "0.0.0",
   "main": "index.js",
   "repository": {
     "type": "git",
