@@ -1,6 +1,6 @@
 {
   "name": "ordre-test",
-  "version": "0.0.0",
+  "version": "0.0.3",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -9,6 +9,9 @@
   "keywords": [
     "ordre"
   ],
+  "bin": {
+    "ordre-test": "./cli.js"
+  },
   "author": "Roger Solis",
   "bugs": {
     "url": "https://github.com/ordreapp/ordre-js/issues"
