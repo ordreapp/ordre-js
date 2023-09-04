@@ -1,0 +1,11 @@
+{
+    "steps": [{
+        "action": "wait",
+        "id": "home_pay_button"
+    }, {
+        "action": "click",
+        "id": "home_pay_button"
+    }],
+    "suffix": "/home?id=3&table=36",
+    "timeout": 600
+}

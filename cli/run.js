@@ -3,10 +3,9 @@ import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { BE_DOMAIN, FE_URL } from '../globals';
 
 const genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-const BE_DOMAIN = 'localhost:8000';
-const FE_URL = 'http://127.0.0.1:5173';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const configFileFullPath = `${__dirname}/.config.json`;
@@ -16,19 +15,40 @@ function log(message) {
     console.log(message);
 }
 
-function startRun(authorizationType, token) {
-    log(`startRun entered (authorizationType=${authorizationType}, token=${token})`);
+function startRun(runId) {
+    log(`startRun entered (runId=${runId})`);
+
+}
+
+function createRun(authorizationType, token) {
+    log(`createRun entered (authorizationType=${authorizationType}, token=${token})`);
+    const url = `${BE_URL}/run/start`;
+    const body = JSON.stringify({
+        
+    });
+    fetch(url, {
+        method: "POST",
+        body
+    }).then(response => response.json()).then(json => {
+        if (!("id" in json)) {
+            log("Unable to create run 'id'.");
+            return;
+        }
+        startRun(json["id"]);
+    }).catch(err => {
+        console.err(`${url} catch: ${err.toString()}`);
+    });
 }
 
 function obtainToken() {
     try {
-        const runId = genRanHex(16);
+        const obtainTokenId = genRanHex(16);
         const socket = new WebSocket(`ws://${BE_DOMAIN}/cli/cli_consumer/`);
         socket.onopen = function() {
-            const body = JSON.stringify({ runId });
+            const body = JSON.stringify({ obtainTokenId });
             socket.send(body);
             log("Opening browser to obtain credentials.");
-            open(`${FE_URL}/cli/token/obtain?runId=${runId}`);
+            open(`${FE_URL}/cli/token/obtain?id=${obtainTokenId}`);
         };
         socket.onmessage = function(event) {
             //log("onmessage entered");
@@ -37,8 +57,10 @@ function obtainToken() {
             //log(JSON.stringify(json));
             const type = json["type"];
             if (type == "send_token_info") {
+                socket.close();
                 if (!("authorization_type" in json) || !("token" in json)) {
                     log("Error obtaining credentials.");
+                    return;
                 }
                 log("Credentials correctly obtained!");
                 const authorizationType = json["authorization_type"];
@@ -54,7 +76,7 @@ function obtainToken() {
                         log(`Error writing .config.json file: ${err}`);
                     }
                 });
-                startRun(authorizationType, token);
+                createRun(authorizationType, token);
             }
         };
     } catch(e) {
@@ -71,7 +93,7 @@ export default function() {
                 if (!("authorizationType" in configDict) || !("token" in configDict)) {
                     obtainToken();
                 } else {
-                    startRun(configDict["authorizationType"], configDict["token"]);
+                    createRun(configDict["authorizationType"], configDict["token"]);
                 }
             } else {
                 obtainToken();

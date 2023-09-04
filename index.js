@@ -1,3 +1,5 @@
+import { BE_URL } from "./globals";
+
 let initialized = false;
 
 function nodeToDict (node) {
@@ -57,8 +59,8 @@ export function startOrdre(options) {
             deviceId,
             nodes: nodesToSend
         });
-    
-        fetch("http://192.168.1.53:8000/middleware/add_nodes", {
+
+        fetch(`${BE_URL}/middleware/add_nodes`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -75,7 +77,7 @@ export function startOrdre(options) {
             nodes: nodesToSend
         });
     
-        fetch("http://192.168.1.53:8000/middleware/remove_nodes", {
+        fetch(`${BE_URL}/middleware/remove_nodes`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
